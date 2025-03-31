@@ -8,51 +8,58 @@ const multer = require("multer");
 const { storage } = require("../cloudConfig");
 const upload = multer({ storage });
 
+// NOTE: Sample data import has been REMOVED
+
+// Main listings route - ONLY shows database listings
 router.route("/")
-    .get(wrapAsync(listingController.index))
-    .post(isLoggedIn,
+    .get(wrapAsync(async (req, res) => {
+        const dbListings = await Listing.find({});
+        res.render("listings/index", { allListings: dbListings });
+    }))
+    .post(
+        isLoggedIn,
         upload.single("listing[image]"),
         validateListing,
-        wrapAsync(listingController.createListing))
-    ;
+        wrapAsync(listingController.createListing)
+    );
 
-//New Route
+// New listing form
 router.get("/new", isLoggedIn, listingController.renderNewForm);
 
-
+// Single listing operations
 router.route("/:id")
     .get(wrapAsync(listingController.showListing))
-    .put(isLoggedIn, isOwner, 
+    .put(
+        isLoggedIn,
+        isOwner,
         upload.single("listing[image]"),
         validateListing,
-        wrapAsync(listingController.updateListing))
-    .delete(isLoggedIn, isOwner, wrapAsync(listingController.destroyListing));
+        wrapAsync(listingController.updateListing)
+    )
+    .delete(
+        isLoggedIn,
+        isOwner,
+        wrapAsync(listingController.destroyListing)
+    );
 
-//Edit Route
-router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(listingController.renderEditForm));
+// Edit form
+router.get("/:id/edit", 
+    isLoggedIn, 
+    isOwner, 
+    wrapAsync(listingController.renderEditForm)
+);
 
-
-// Category filter route
-router.get("/category/:category", async (req, res) => {
-    try {
-        let category = req.params.category;
-        console.log("Category Requested:", category); // Debugging
-
-        let filteredListings = await Listing.find({ category: category });
-
-        if (!filteredListings.length) {
-            console.log("No listings found for this category");
-            return res.status(404).send("No listings found in this category");
-        }
-
-        console.log("Listings found:", filteredListings);
-        res.render("listings/index", { allListings: filteredListings });
-    } catch (error) {
-        console.log("Error:", error);
-        res.status(500).send("Internal Server Error");
+// Category filter - ONLY shows database listings
+router.get("/category/:category", wrapAsync(async (req, res) => {
+    const category = req.params.category;
+    const filteredListings = await Listing.find({ category });
+    
+    if (!filteredListings.length) {
+        req.flash("error", "No listings found in this category");
+        return res.redirect("/listings");
     }
-});
-
-
+    
+    res.render("listings/index", { allListings: filteredListings });
+}));
 
 module.exports = router;

@@ -31,8 +31,12 @@ main()
     });
 
 async function main() {
-    await mongoose.connect(dbUrl);
-}
+    await mongoose.connect(dbUrl)
+    .then(() => console.log("✅ Connected to MongoDB"))
+    .catch(err => console.error("❌ MongoDB Connection Error:", err));
+
+};
+
 
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'views'));
@@ -50,9 +54,10 @@ const store = MongoStore.create({
     touchAfter: 24 * 3600,
 });
 
-store.on("error", () => {
-    console.log("Error in MONGO SESSION STORE", err);
-})
+store.on("error", (err) => {
+    console.error("❌ Error in MONGO SESSION STORE:", err);
+});
+
 
 const sessionOptions = {
     store,
